@@ -26,7 +26,8 @@ public:
 		NodeType nodeType;	 // Node type (hidden / error)
 
 		Activation act;		 // Activation function
-		float initialBias;	 // Initial bias ( only when preActivation higher than this, output of the node will be activated as preActivation - bias ( biased ReLU ) )
+		float beforeActValue;
+		float bias;			 // Initial bias ( only when preActivation higher than this, output of the node will be activated as preActivation - bias ( biased ReLU ) )
 		float learningDecay; // How much gradients will it back-propagate
 		float valueDecay;	 // fixed node value decay = 0.6 ( value decay after each forward step )
 		
@@ -42,7 +43,7 @@ public:
 		int endVertex;
 		bool enabled;		 // Edges with low weights will become DISABLED with high prob. and DISABLED edge will be randomly removed, kept, or re-enabled.
 
-		float initialWeight; // Initial weight value.
+		float weight;		 // Initial weight value.
 		// float learningRate;
 	};
 

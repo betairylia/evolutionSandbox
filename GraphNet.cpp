@@ -16,7 +16,7 @@ GraphNet::GraphNet(Gene & gene) :
 		nd.nodeType = Gene::NodeType::Input;
 
 		nd.act = Gene::Activation::Identity;
-		nd.initialBias = 0;
+		nd.bias = 0;
 		nd.learningDecay = 0.0f;
 
 		vertices.push_back(nd);
@@ -32,7 +32,7 @@ GraphNet::GraphNet(Gene & gene) :
 		nd.nodeType = Gene::NodeType::Output;
 
 		nd.act = Gene::Activation::Identity;
-		nd.initialBias = 0;
+		nd.bias = 0;
 		nd.learningDecay = 0.0f;
 
 		vertices.push_back(nd);
@@ -80,9 +80,55 @@ GraphNet::Output GraphNet::Forward_ST_CPU(InputSignal& signal)
 		int eLen = edges.at(i).size();
 		for (int j = 0; j < eLen; j++)
 		{
-			vertices.at(edges.at(i).at(j).endVertex).
+			vertices.at(edges.at(i).at(j).endVertex).preActivation += vertices.at(i).value * edges.at(i).at(j).weight;
 		}
 	}
 
-	return Output();
+	// Update node value
+	for (int i = 0; i < len; i++)
+	{
+		vertices.at(i).beforeActValue += vertices.at(i).preActivation;
+		vertices.at(i).value = vertices.at(i).beforeActValue + vertices.at(i).bias;
+		switch (vertices.at(i).act)
+		{
+			case Gene::Activation::ReLU:
+				vertices.at(i).value = (vertices.at(i).value > 0) ? vertices.at(i).value : 0;
+				break;
+
+			case Gene::Activation::Identity:
+				vertices.at(i).value = vertices.at(i).value;
+		}
+	}
+
+	Output output;
+
+	// Check outputs
+	float max_v = -9999999;
+	int max_idx = -1;
+
+	for (int i = INPUT_COUNT; i < INPUT_COUNT + 4; i++)
+	{
+		if (max_v < vertices.at(i).value)
+		{
+			max_v = vertices.at(i).value;
+			max_idx = i - INPUT_COUNT;
+		}
+	}
+
+	output.direction = (OutputDirection)max_idx;
+
+	max_v = -9999999;
+	max_idx = -1;
+	for (int i = INPUT_COUNT + 4; i < IO_COUNT; i++)
+	{
+		if (max_v < vertices.at(i).value)
+		{
+			max_v = vertices.at(i).value;
+			max_idx = i - INPUT_COUNT - 4;
+		}
+	}
+
+	output.action = (OutputAction)max_idx;
+
+	return output;
 }
