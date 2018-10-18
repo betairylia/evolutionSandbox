@@ -1,5 +1,11 @@
 #pragma once
 
+#ifndef UTILS
+#define UTILS
+
+#include "SDL.h"
+#include "SDL_image.h"
+
 // TODO: strides in vision & offset inside ticks?
 constexpr auto VISION_WIDTH = 7;
 constexpr auto VISION_DEPTH = 7;
@@ -53,9 +59,9 @@ enum OutputDirection
 
 enum OutputAction
 {
+	Stay,
 	Move,
 	Run,
-	Stay,
 	Say,
 	Attack_Use,
 	Pick_Drop,
@@ -129,64 +135,20 @@ struct EdgeNode
 						 // float learningRate;
 };
 
-int directionVector[4][2] = { {0, 1}, {0, -1}, {-1, 0}, {1, 0} };
-float terrainStaminaCost[6] = {1.5, 1.0, 0.7, 0.7, 0.7, 10.0};
+//class Utils
+//{
+//	static int directionVector[4][2];
+//	static float terrainStaminaCost[6];
+//	static int directionMapping[4][4];
+//
+//	static SDL_Rect spriteClips_Terrain[6], spriteClips_Objects[4], spriteClips_Species[5];
+//};
 
-int directionMapping[4][4] = { {0, 1, 2, 3}, {1, 0, 3, 2}, {2, 3, 1, 0}, {3, 2, 0, 1}, };
-/*
-int getSpawnPointX(int index)
-{
-	int lenth = 1, walkLenth = 0, turnCount = 0, cDirc = 0;
-	int dirc[4] = {1, 0, -1, 0};
-	int x = 0;
-	for (int i = 0; i < index; i++)
-	{
-		x += dirc[cDirc];
-		walkLenth++;
+extern int directionVector[4][2];
+extern float terrainStaminaCost[6];
+extern int directionMapping[4][4];
+extern SDL_Rect spriteClips_Terrain[6];
+extern SDL_Rect spriteClips_Objects[4];
+extern SDL_Rect spriteClips_Species[5];
 
-		if (walkLenth >= lenth)
-		{
-			turnCount++;
-			cDirc++;
-			cDirc %= 4;
-
-			if (turnCount % 2 == 0)
-			{
-				lenth += 1;
-			}
-
-			walkLenth = 0;
-		}
-	}
-
-	return x;
-}
-
-int getSpawnPointY(int index)
-{
-	int lenth = 1, walkLenth = 0, turnCount = 0, cDirc = 0;
-	int dirc[4] = { 0, 1, 0, -1 };
-	int y = 0;
-	for (int i = 0; i < index; i++)
-	{
-		y += dirc[cDirc];
-		walkLenth++;
-
-		if (walkLenth >= lenth)
-		{
-			turnCount++;
-			cDirc++;
-			cDirc %= 4;
-
-			if (turnCount % 2 == 0)
-			{
-				lenth += 1;
-			}
-
-			walkLenth = 0;
-		}
-	}
-
-	return y;
-}
-*/
+#endif

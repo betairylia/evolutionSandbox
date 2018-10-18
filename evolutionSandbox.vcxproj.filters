@@ -39,6 +39,12 @@
     <ClCompile Include="PerlinNoise.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="LTexture.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SDLApplication.h">
@@ -63,6 +69,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="PerlinNoise.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LTexture.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

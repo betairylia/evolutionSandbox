@@ -44,7 +44,7 @@ Gene::Gene()
 		e.endVertex = IO_COUNT; // To hidden node 1
 		e.enabled = true;
 
-		e.weight = 0.1 * (*normal_dist)(*gen);
+		e.weight = 1 * (*normal_dist)(*gen);
 
 		edges.at(i).push_back(e);
 	}
@@ -60,9 +60,9 @@ Gene::Gene()
 		e.endVertex = INPUT_COUNT + i; // To output node
 		e.enabled = true;
 
-		e.weight = 0.1 * (*normal_dist)(*gen);
+		e.weight = 1 * (*normal_dist)(*gen);
 
-		edges.at(i).push_back(e);
+		edges.at(IO_COUNT).push_back(e);
 	}
 }
 
@@ -83,22 +83,25 @@ Gene::~Gene()
 
 Gene & Gene::BreedAndMutate(Gene & a, Gene & b)
 {
+	//std::cout << "Breeding and mutating..." << std::endl;
+
 	// Currently use only one gene
 	Gene* gene = new Gene(a);
 
 	int len = gene->vertices.size();
 
 	// Randomly create new node in serial
-	for (int i = 0; i < len; i++)
+	for (int _i = 0; _i < len; _i++)
 	{
-		std::vector<bool> hasEdge(len);
+		int i = _i + IO_COUNT;
+		std::vector<bool> hasEdge(len + IO_COUNT);
 
 		int eLen = gene->edges.at(i).size();
 		for (int j = 0; j < eLen; j++)
 		{
-			hasEdge.at(j) = true;
+			hasEdge.at(gene->edges.at(i).at(j).endVertex) = true;
 			// Create a new node
-			if (rand() % 100 < 10)
+			if (rand() % 100 < 1)
 			{
 				VertexNode n;
 
@@ -116,6 +119,8 @@ Gene & Gene::BreedAndMutate(Gene & a, Gene & b)
 				n.preActivation = 0.0f;
 				n.beforeActValue = 0.0f;
 				n.value = 0.0f;
+
+				gene->vertices.push_back(n);
 				
 				///////////////////////////////////////////////////////////
 
@@ -136,7 +141,7 @@ Gene & Gene::BreedAndMutate(Gene & a, Gene & b)
 				e.enabled = true;
 
 				// TODO: fixed initial value ?
-				e.weight = 0.1 * (*gene->normal_dist)(*gene->gen);
+				e.weight = 1 * (*gene->normal_dist)(*gene->gen);
 
 				// Add it to the list
 				gene->edges.at(i).push_back(e);
@@ -149,7 +154,7 @@ Gene & Gene::BreedAndMutate(Gene & a, Gene & b)
 				e.endVertex = gene->edges.at(i).at(j).endVertex; // To output node
 				e.enabled = true;
 
-				e.weight = 0.1 * (*gene->normal_dist)(*gene->gen);
+				e.weight = 1 * (*gene->normal_dist)(*gene->gen);
 
 				// Add it to the list
 				gene->edges.at(n.index).push_back(e);
@@ -161,7 +166,7 @@ Gene & Gene::BreedAndMutate(Gene & a, Gene & b)
 		{
 			int targetId = rand() % len;
 			// You are not supposed to create a edge back to input.
-			if (gene->vertices.at(targetId).nodeType != NodeType::InputNeuron && !hasEdge.at(targetId))
+			if (targetId > INPUT_COUNT && !hasEdge.at(targetId))
 			{
 				// Create the edge (even for a self-connection)
 				EdgeNode e;
@@ -173,7 +178,7 @@ Gene & Gene::BreedAndMutate(Gene & a, Gene & b)
 				e.endVertex = targetId;
 				e.enabled = true;
 
-				e.weight = 0.1 * (*gene->normal_dist)(*gene->gen);
+				e.weight = 1 * (*gene->normal_dist)(*gene->gen);
 
 				// Add it to the list
 				gene->edges.at(i).push_back(e);
@@ -183,8 +188,10 @@ Gene & Gene::BreedAndMutate(Gene & a, Gene & b)
 
 	for (int i = 0; i < len; i++)
 	{
+		gene->vertices.at(i).bias += 0.04 * (*gene->normal_dist)(*gene->gen);
+
 		// Randomly reassign node bias
-		if (rand() % 100 < 25)
+		if (rand() % 100 < 5)
 		{
 			gene->vertices.at(i).bias += (*gene->normal_dist)(*gene->gen);
 		}
@@ -192,10 +199,12 @@ Gene & Gene::BreedAndMutate(Gene & a, Gene & b)
 		int eLen = gene->edges.at(i).size();
 		for (int j = 0; j < eLen; j++)
 		{
+			gene->edges.at(i).at(j).weight += 0.01 * (*gene->normal_dist)(*gene->gen);
+
 			// Randomly reassign edge weight
-			if (rand() % 100 < 20)
+			if (rand() % 100 < 5)
 			{
-				gene->edges.at(i).at(j).weight += 0.1 * (*gene->normal_dist)(*gene->gen);
+				gene->edges.at(i).at(j).weight += 0.3 * (*gene->normal_dist)(*gene->gen);
 			}
 		}
 	}

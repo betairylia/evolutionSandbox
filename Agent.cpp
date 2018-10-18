@@ -4,12 +4,12 @@ int Agent::stepPerTick = 10;
 
 Agent::Agent(Gene& _gene, int _species) : 
 	m_gene(_gene),
-	m_brain((*new GraphNet(m_gene))),
+	m_brain((*new GraphNet(_gene))),
 	species(_species)
 {
 	// TODO: change me!
 	currentHealth = prevHealth = maxHealth = 10;
-	currentStamina = prevStamina = maxStamina = 100;
+	currentStamina = prevStamina = maxStamina = 25 + rand() % 10;
 	staminaMultiplier = 1;
 	lifetime = 0;
 	mateCount = 0;
@@ -46,6 +46,8 @@ AgentOutput Agent::DoAction()
 
 	// Clear the cache
 	m_actionCache.clear();
+
+	_tickCount = 0;
 
 	return result;
 }

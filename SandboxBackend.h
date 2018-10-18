@@ -19,16 +19,19 @@ public:
 
 	void AddAgent(Agent& agent);
 	bool UseItem(Agent& agent, ObjectType item);
+	void UpdateMap();
 
 	int getSpawnPointX(int index);
 	int getSpawnPointY(int index);
 
-	std::vector<Agent&> m_agentList;
+	std::vector<Agent*> m_agentList;
 
 	MapGrid m_map[MAPSIZE_X][MAPSIZE_Y];
 	
 	float speciesMateLifespanMin[SPECIES_COUNT];
 	float speciesMateLifespanGap[SPECIES_COUNT];
+
+	int maxLifeSpan = 0;
 
 	unsigned int time;
 	int m_seed;

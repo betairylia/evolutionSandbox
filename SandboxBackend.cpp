@@ -9,8 +9,6 @@ SandboxBackend::~SandboxBackend()
 {
 }
 
-
-
 bool SandboxBackend::Init()
 {
 	for (int i = 0; i < SPECIES_COUNT; ++i)
@@ -26,7 +24,7 @@ bool SandboxBackend::Init()
 	{
 		for (int y = 0; y < MAPSIZE_Y; y++)
 		{
-			double noiseValue = pn.noise((double)x / (double)MAPSIZE_X, (double)y / (double)MAPSIZE_Y, 0.5);
+			double noiseValue = (pn.noise((double)x / (double)MAPSIZE_X * 4.0, (double)y / (double)MAPSIZE_Y * 4.0, 0.5) - 0.32f) * 2.7f;
 
 			if (noiseValue < 0.20)
 			{
@@ -57,66 +55,14 @@ bool SandboxBackend::Init()
 	// Update the map initially for 20 steps
 	for (int i = 0; i < 20; i++)
 	{
-		for (int x = 0; x < MAPSIZE_X; x++)
-		{
-			for (int y = 0; y < MAPSIZE_Y; y++)
-			{
-				// Clear temporal agent data in map
-				m_map[x][y].hasAgentTalking = false;
-				m_map[x][y].agentSpecies = 0;
-				m_map[x][y].currentGridAgent = nullptr;
-
-				// Spawn objects
-				if (m_map[x][y].object == ObjectType::None)
-				{
-					switch (m_map[x][y].terrain)
-					{
-						// Forest area, hard to move, but produce lots of foods.
-					case TerrainType::Meadow:
-						int RNG = rand() % 1000;
-						if (RNG < 5)
-						{
-							m_map[x][y].object = ObjectType::Nut;
-						}
-						else if (RNG < 15)
-						{
-							m_map[x][y].object = ObjectType::Food;
-						}
-						else if (RNG < 30)
-						{
-							m_map[x][y].object = ObjectType::Seed;
-						}
-						break;
-
-					case TerrainType::Grass:
-						int RNG = rand() % 1000;
-						if (RNG < 8)
-						{
-							m_map[x][y].object = ObjectType::Food;
-						}
-						else if (RNG < 15)
-						{
-							m_map[x][y].object = ObjectType::Seed;
-						}
-						break;
-
-					case TerrainType::Rock:
-						int RNG = rand() % 1000;
-						if (RNG < 20)
-						{
-							m_map[x][y].object = ObjectType::Stone;
-						}
-						break;
-					}
-				}
-			}
-		}
+		UpdateMap();
 	}
 
 	// Randomly place agents
 	for (int i = 0; i < MINIMAL_AGENT_COUNT; i++)
 	{
-		Agent* agent = new Agent((*new Gene()), rand() % SPECIES_COUNT);
+		Gene* gene = new Gene();
+		Agent* agent = new Agent(*gene, 1 + rand() % SPECIES_COUNT);
 
 		agent->x = rand() % MAPSIZE_X;
 		agent->y = rand() % MAPSIZE_Y;
@@ -137,8 +83,12 @@ void SandboxBackend::Update()
 {
 	#pragma region UpdateAgents
 	// Update all agent
-	for (std::vector<Agent&>::iterator pAgent = m_agentList.begin(); pAgent != m_agentList.end(); ++pAgent)
+	int agentListLenth = m_agentList.size();
+	#pragma omp parallel for
+	for (int i = 0; i < agentListLenth; i++)
 	{
+		Agent* pAgent = m_agentList.at(i);
+
 		InputSignal inputSignal;
 
 		// VISION (and some TOUCH)
@@ -179,7 +129,7 @@ void SandboxBackend::Update()
 				}
 
 				// Boundary check
-				if (srcX < 0 || srcX > MAPSIZE_X || srcY < 0 || srcY > MAPSIZE_Y)
+				if (srcX < 0 || srcX >= MAPSIZE_X || srcY < 0 || srcY >= MAPSIZE_Y)
 				{
 					// Terrain channel
 					inputSignal.vision[dstX * (VISION_DEPTH * VISION_CHANNEL) + dstY * (VISION_CHANNEL)+0] = TerrainType::Obstacle;
@@ -257,8 +207,10 @@ void SandboxBackend::Update()
 
 	#pragma region DoAction
 	// Collect agent actions, do them and update agent
-	for (std::vector<Agent&>::iterator pAgent = m_agentList.begin(); pAgent != m_agentList.end(); ++pAgent)
+	for (std::vector<Agent*>::iterator iter = m_agentList.begin(); iter != m_agentList.end(); ++iter)
 	{
+		Agent* pAgent = *iter;
+
 		bool agentHasAction = false;
 		AgentOutput agentAction;
 
@@ -285,7 +237,7 @@ void SandboxBackend::Update()
 						newY = pAgent->y + directionVector[pAgent->faceDirection][1];
 
 					// Boundary check
-					if (newX < 0 || newX > MAPSIZE_X || newY < 0 || newY > MAPSIZE_Y)
+					if (newX < 0 || newX >= MAPSIZE_X || newY < 0 || newY >= MAPSIZE_Y)
 					{
 						break;
 					}
@@ -309,7 +261,7 @@ void SandboxBackend::Update()
 						newY = pAgent->y + 2 * directionVector[pAgent->faceDirection][1];
 
 					// Boundary check
-					if (newX < 0 || newX > MAPSIZE_X || newY < 0 || newY > MAPSIZE_Y)
+					if (newX < 0 || newX >= MAPSIZE_X || newY < 0 || newY >= MAPSIZE_Y)
 					{
 						break;
 					}
@@ -395,7 +347,7 @@ void SandboxBackend::Update()
 						newY = pAgent->y + directionVector[pAgent->faceDirection][1];
 					
 					// Boundary check
-					if (newX < 0 || newX > MAPSIZE_X || newY < 0 || newY > MAPSIZE_Y)
+					if (newX < 0 || newX >= MAPSIZE_X || newY < 0 || newY >= MAPSIZE_Y)
 					{
 						break;
 					}
@@ -420,118 +372,26 @@ void SandboxBackend::Update()
 
 	#pragma region UpdateMap
 	// Update the map
-	for (int x = 0; x < MAPSIZE_X; x++)
-	{
-		for (int y = 0; y < MAPSIZE_Y; y++)
-		{
-			// Clear temporal agent data in map
-			m_map[x][y].hasAgentTalking = false;
-			m_map[x][y].agentSpecies = 0;
-			m_map[x][y].currentGridAgent = nullptr;
-
-			// Spawn objects
-			if (m_map[x][y].object == ObjectType::None)
-			{
-				switch (m_map[x][y].terrain)
-				{
-					// Forest area, hard to move, but produce lots of foods.
-				case TerrainType::Meadow:
-					int RNG = rand() % 1000;
-					if (RNG < 5)
-					{
-						m_map[x][y].object = ObjectType::Nut;
-					}
-					else if (RNG < 15)
-					{
-						m_map[x][y].object = ObjectType::Food;
-					}
-					else if (RNG < 30)
-					{
-						m_map[x][y].object = ObjectType::Seed;
-					}
-					break;
-
-				case TerrainType::Grass:
-					int RNG = rand() % 1000;
-					if (RNG < 8)
-					{
-						m_map[x][y].object = ObjectType::Food;
-					}
-					else if (RNG < 15)
-					{
-						m_map[x][y].object = ObjectType::Seed;
-					}
-					break;
-
-				case TerrainType::Rock:
-					int RNG = rand() % 1000;
-					if (RNG < 20)
-					{
-						m_map[x][y].object = ObjectType::Stone;
-					}
-					break;
-				}
-			}
-
-			// Update seeds
-			if (m_map[x][y].terrain == TerrainType::SeedDirt && m_map[x][y].terrainMeta > 0)
-			{
-				m_map[x][y].terrainMeta -= 1;
-				if (m_map[x][y].terrainMeta <= 0)
-				{
-					m_map[x][y].terrain = TerrainType::Dirt;
-
-					// Spawn foods
-					int foodCount = 2 + rand() % 3;
-					int seedCount = 0 + rand() % 3;
-					int cnt = 0;
-					for (int i = 0; i < foodCount; i++)
-					{
-						while (cnt < 25)
-						{
-							int dstX = x + getSpawnPointX(cnt);
-							int dstY = y + getSpawnPointY(cnt);
-
-							cnt++;
-
-							if (m_map[dstX][dstY].terrain != TerrainType::Obstacle && m_map[dstX][dstY].object == ObjectType::None)
-							{
-								m_map[dstX][dstY].object = ObjectType::Food;
-								break;
-							}
-						}
-					}
-					for (int i = 0; i < seedCount; i++)
-					{
-						while (cnt < 25)
-						{
-							int dstX = x + getSpawnPointX(cnt);
-							int dstY = y + getSpawnPointY(cnt);
-
-							cnt++;
-
-							if (m_map[dstX][dstY].terrain != TerrainType::Obstacle && m_map[dstX][dstY].object == ObjectType::None)
-							{
-								m_map[dstX][dstY].object = ObjectType::Seed;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	UpdateMap();
 	#pragma endregion
 
 	#pragma region UpdateAgentStatus
 	// Update status for agents and place their pointers in map
-	for (std::vector<Agent&>::iterator pAgent = m_agentList.begin(); pAgent != m_agentList.end();)
+	for (std::vector<Agent*>::iterator iter = m_agentList.begin(); iter != m_agentList.end();)
 	{
+		Agent* pAgent = *iter;
+
+		// Update max life span
+		if (pAgent->lifetime > maxLifeSpan)
+		{
+			maxLifeSpan = pAgent->lifetime;
+		}
+
 		// You HUNGER!
 		if (!pAgent->useStamina(1))
 		{
 			// People die if they don't eat
-			pAgent->currentHealth -= 0.1;
+			pAgent->currentHealth -= 0.3;
 		}
 
 		// Breeding
@@ -605,7 +465,7 @@ void SandboxBackend::Update()
 
 			// Remove agent
 			Agent* deadAgent = &(*pAgent);
-			pAgent = m_agentList.erase(pAgent);
+			iter = m_agentList.erase(iter);
 			delete deadAgent;
 
 			continue;
@@ -620,8 +480,10 @@ void SandboxBackend::Update()
 			m_map[pAgent->x][pAgent->y].hasAgentTalking = true;
 		}
 
+		pAgent->lifetime++;
+
 		// Goto next agent
-		++pAgent;
+		++iter;
 	}
 	#pragma endregion
 
@@ -629,8 +491,8 @@ void SandboxBackend::Update()
 	int aCount = m_agentList.size();
 	for (int i = 0; i < MINIMAL_AGENT_COUNT - aCount; i++)
 	{
-		Agent& randomAgent = m_agentList.at(rand() % aCount);
-		Agent* agent = new Agent(Gene::BreedAndMutate(randomAgent.m_gene, randomAgent.m_gene), randomAgent.species);
+		Agent* randomAgent = m_agentList.at(rand() % aCount);
+		Agent* agent = new Agent(Gene::BreedAndMutate(randomAgent->m_gene, randomAgent->m_gene), randomAgent->species);
 		
 		agent->x = rand() % MAPSIZE_X;
 		agent->y = rand() % MAPSIZE_Y;
@@ -650,11 +512,12 @@ void SandboxBackend::Update()
 
 void SandboxBackend::Render()
 {
+	// Maybe we should write outside this "Backend".
 }
 
 void SandboxBackend::AddAgent(Agent & agent)
 {
-	m_agentList.push_back(agent);
+	m_agentList.push_back(&agent);
 	m_map[agent.x][agent.y].agentSpecies = agent.species;
 	m_map[agent.x][agent.y].currentGridAgent = &agent;
 }
@@ -670,7 +533,7 @@ bool SandboxBackend::UseItem(Agent & agent, ObjectType item)
 	{
 	// Food, restores stamina.
 	case ObjectType::Food:
-		agent.currentStamina += 40;
+		agent.currentStamina += 30;
 		if (agent.currentStamina > agent.maxStamina)
 		{
 			agent.currentStamina = agent.maxStamina;
@@ -694,11 +557,12 @@ bool SandboxBackend::UseItem(Agent & agent, ObjectType item)
 
 	// Stone, can be used to open nuts or attack front target
 	case ObjectType::Stone:
+	{
 		if (m_map[agent.x][agent.y].object == ObjectType::Nut)
 		{
 			m_map[agent.x][agent.y].object = ObjectType::None;
 
-			agent.currentStamina += 100;
+			agent.currentStamina += 50;
 			if (agent.currentStamina > agent.maxStamina)
 			{
 				agent.currentStamina = agent.maxStamina;
@@ -717,7 +581,7 @@ bool SandboxBackend::UseItem(Agent & agent, ObjectType item)
 			newY = agent.y + directionVector[agent.faceDirection][1];
 
 		// Boundary check
-		if (newX < 0 || newX > MAPSIZE_X || newY < 0 || newY > MAPSIZE_Y)
+		if (newX < 0 || newX >= MAPSIZE_X || newY < 0 || newY >= MAPSIZE_Y)
 		{
 			return false;
 		}
@@ -732,10 +596,123 @@ bool SandboxBackend::UseItem(Agent & agent, ObjectType item)
 		}
 		return false;
 		break;
-
+	}
 	// It cannot be used.
 	case ObjectType::Nut:
 		return false;
+	}
+}
+
+void SandboxBackend::UpdateMap()
+{
+	for (int x = 0; x < MAPSIZE_X; x++)
+	{
+		for (int y = 0; y < MAPSIZE_Y; y++)
+		{
+			// Clear temporal agent data in map
+			m_map[x][y].hasAgentTalking = false;
+			m_map[x][y].agentSpecies = 0;
+			m_map[x][y].currentGridAgent = nullptr;
+
+			// Objects may disappear
+			if (m_map[x][y].object != ObjectType::None)
+			{
+				int RNG = rand() % 1000;
+				if (RNG < 2)
+				{
+					m_map[x][y].object = ObjectType::None;
+				}
+			}
+
+			// Spawn objects
+			if (m_map[x][y].object == ObjectType::None)
+			{
+				int RNG = rand() % 1000;
+				switch (m_map[x][y].terrain)
+				{
+					// Forest area, hard to move, but produce lots of foods.
+				case TerrainType::Meadow:
+					if (RNG < 1)
+					{
+						m_map[x][y].object = ObjectType::Nut;
+					}
+					else if (RNG < 2)
+					{
+						m_map[x][y].object = ObjectType::Food;
+					}
+					else if (RNG < 4)
+					{
+						m_map[x][y].object = ObjectType::Seed;
+					}
+					break;
+
+				case TerrainType::Grass:
+					if (RNG < 1)
+					{
+						m_map[x][y].object = ObjectType::Food;
+					}
+					else if (RNG < 2)
+					{
+						m_map[x][y].object = ObjectType::Seed;
+					}
+					break;
+
+				case TerrainType::Rock:
+					if (RNG < 2)
+					{
+						m_map[x][y].object = ObjectType::Stone;
+					}
+					break;
+				}
+			}
+
+			// Update seeds
+			if (m_map[x][y].terrain == TerrainType::SeedDirt && m_map[x][y].terrainMeta > 0)
+			{
+				m_map[x][y].terrainMeta -= 1;
+				if (m_map[x][y].terrainMeta <= 0)
+				{
+					m_map[x][y].terrain = TerrainType::Dirt;
+
+					// Spawn foods
+					int foodCount = 2 + rand() % 3;
+					int seedCount = 0 + rand() % 3;
+					int cnt = 0;
+					for (int i = 0; i < foodCount; i++)
+					{
+						while (cnt < 25)
+						{
+							int dstX = x + getSpawnPointX(cnt);
+							int dstY = y + getSpawnPointY(cnt);
+
+							cnt++;
+
+							if (m_map[dstX][dstY].terrain != TerrainType::Obstacle && m_map[dstX][dstY].object == ObjectType::None)
+							{
+								m_map[dstX][dstY].object = ObjectType::Food;
+								break;
+							}
+						}
+					}
+					for (int i = 0; i < seedCount; i++)
+					{
+						while (cnt < 25)
+						{
+							int dstX = x + getSpawnPointX(cnt);
+							int dstY = y + getSpawnPointY(cnt);
+
+							cnt++;
+
+							if (m_map[dstX][dstY].terrain != TerrainType::Obstacle && m_map[dstX][dstY].object == ObjectType::None)
+							{
+								m_map[dstX][dstY].object = ObjectType::Seed;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

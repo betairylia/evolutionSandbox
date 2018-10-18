@@ -18,6 +18,10 @@ GraphNet::GraphNet(Gene & gene) :
 		nd.act = Activation::Identity;
 		nd.bias = 0;
 		nd.learningDecay = 0.0f;
+		nd.valueDecay = 0.0f;
+		nd.preActivation = 0.0f;
+		nd.beforeActValue = 0.0f;
+		nd.value = 0.0f;
 
 		vertices.push_back(nd);
 	}
@@ -34,6 +38,10 @@ GraphNet::GraphNet(Gene & gene) :
 		nd.act = Activation::Identity;
 		nd.bias = 0;
 		nd.learningDecay = 0.0f;
+		nd.valueDecay = 0.0f;
+		nd.preActivation = 0.0f;
+		nd.beforeActValue = 0.0f;
+		nd.value = 0.0f;
 
 		vertices.push_back(nd);
 	}
@@ -120,6 +128,7 @@ AgentOutput GraphNet::Forward_ST_CPU(InputSignal& signal)
 		}
 	}
 
+	if (max_idx == -1) { max_idx = 0; }
 	output.direction = (OutputDirection)max_idx;
 
 	max_v = -9999999;
@@ -133,6 +142,7 @@ AgentOutput GraphNet::Forward_ST_CPU(InputSignal& signal)
 		}
 	}
 
+	if (max_idx == -1) { max_idx = 0; }
 	output.action = (OutputAction)max_idx;
 
 	return output;

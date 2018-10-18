@@ -22,6 +22,11 @@ int SDLApplication::OnExecute()
 	{
 		while (SDL_PollEvent(&evt)) 
 		{
+			if (evt.type == SDL_QUIT)
+			{
+				m_isRunning = false;
+			}
+
 			OnEvent(&evt);
 		}
 
