@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{2B2A6CF3-01AF-4C8B-99B7-4A593EEF20A3}</ProjectGuid>
     <RootNamespace>evolutionSandbox</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -132,6 +132,7 @@
     <ClCompile Include="Gene.cpp" />
     <ClCompile Include="GraphNet.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PerlinNoise.cpp" />
     <ClCompile Include="SandboxBackend.cpp" />
     <ClCompile Include="SDLApplication.cpp" />
   </ItemGroup>
@@ -140,8 +141,10 @@
     <ClInclude Include="EvolutionSandbox.h" />
     <ClInclude Include="Gene.h" />
     <ClInclude Include="GraphNet.h" />
+    <ClInclude Include="PerlinNoise.h" />
     <ClInclude Include="SandboxBackend.h" />
     <ClInclude Include="SDLApplication.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

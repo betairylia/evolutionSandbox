@@ -8,14 +8,14 @@ GraphNet::GraphNet(Gene & gene) :
 	// Add input and output nodes.
 	for (int i = 0; i < INPUT_COUNT; i++)
 	{
-		Gene::VertexNode nd;
+		VertexNode nd;
 		
 		nd.innovationNum = 0;
 
 		nd.index = i;
-		nd.nodeType = Gene::NodeType::Input;
+		nd.nodeType = NodeType::InputNeuron;
 
-		nd.act = Gene::Activation::Identity;
+		nd.act = Activation::Identity;
 		nd.bias = 0;
 		nd.learningDecay = 0.0f;
 
@@ -24,14 +24,14 @@ GraphNet::GraphNet(Gene & gene) :
 
 	for (int i = 0; i < OUTPUT_COUNT; i++)
 	{
-		Gene::VertexNode nd;
+		VertexNode nd;
 
 		nd.innovationNum = 0;
 
 		nd.index = INPUT_COUNT + i;
-		nd.nodeType = Gene::NodeType::Output;
+		nd.nodeType = NodeType::OutputNeuron;
 
-		nd.act = Gene::Activation::Identity;
+		nd.act = Activation::Identity;
 		nd.bias = 0;
 		nd.learningDecay = 0.0f;
 
@@ -40,19 +40,20 @@ GraphNet::GraphNet(Gene & gene) :
 
 	// Readin gene nodes by copy them
 	vertices.insert(vertices.end(), gene.vertices.begin(), gene.vertices.end());
-	edges = gene.edges;
+	edges = gene.edges; // <-- this is a copy process.
 }
 
 GraphNet::~GraphNet()
 {
+	delete &m_gene;
 }
 
-GraphNet::Output GraphNet::Forward(InputSignal signal)
+AgentOutput GraphNet::Forward(InputSignal& signal)
 {
 	return Forward_ST_CPU(signal);
 }
 
-GraphNet::Output GraphNet::Forward_ST_CPU(InputSignal& signal)
+AgentOutput GraphNet::Forward_ST_CPU(InputSignal& signal)
 {
 	// Feed in input data
 	// vision
@@ -80,29 +81,33 @@ GraphNet::Output GraphNet::Forward_ST_CPU(InputSignal& signal)
 		int eLen = edges.at(i).size();
 		for (int j = 0; j < eLen; j++)
 		{
-			vertices.at(edges.at(i).at(j).endVertex).preActivation += vertices.at(i).value * edges.at(i).at(j).weight;
+			if (edges.at(i).at(j).enabled)
+			{
+				vertices.at(edges.at(i).at(j).endVertex).preActivation += vertices.at(i).value * edges.at(i).at(j).weight;
+			}
 		}
 	}
 
 	// Update node value
 	for (int i = 0; i < len; i++)
 	{
+		vertices.at(i).beforeActValue *= vertices.at(i).valueDecay;
 		vertices.at(i).beforeActValue += vertices.at(i).preActivation;
-		vertices.at(i).value = vertices.at(i).beforeActValue + vertices.at(i).bias;
+		vertices.at(i).value = vertices.at(i).beforeActValue + vertices.at(i).bias + 0.1f * (*m_gene.normal_dist)(*m_gene.gen); // Add a gaussian noise
 		switch (vertices.at(i).act)
 		{
-			case Gene::Activation::ReLU:
+			case Activation::ReLU:
 				vertices.at(i).value = (vertices.at(i).value > 0) ? vertices.at(i).value : 0;
 				break;
 
-			case Gene::Activation::Identity:
+			case Activation::Identity:
 				vertices.at(i).value = vertices.at(i).value;
 		}
 	}
 
-	Output output;
+	AgentOutput output;
 
-	// Check outputs
+	// Check outputs via max-out
 	float max_v = -9999999;
 	int max_idx = -1;
 
